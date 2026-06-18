@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Kanban Board</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+min-height:100vh;
+transition:0.4s;
+}
+
+body.light{
+background:#f1f5f9;
+color:#111;
+}
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:20px 40px;
+backdrop-filter:blur(15px);
+background:rgba(255,255,255,0.08);
+position:sticky;
+top:0;
+z-index:100;
+}
+
+.logo{
+font-size:28px;
+font-weight:bold;
+}
+
+.toggle{
+padding:10px 15px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.hero{
+text-align:center;
+padding:30px;
+}
+
+.hero h1{
+font-size:3rem;
+margin-bottom:10px;
+}
+
+.hero p{
+opacity:0.8;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+padding:20px;
+}
+
+.card{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(15px);
+padding:20px;
+border-radius:20px;
+text-align:center;
+}
+
+.card h2{
+font-size:35px;
+margin-top:10px;
+}
+
+.controls{
+display:flex;
+justify-content:center;
+gap:10px;
+padding:20px;
+flex-wrap:wrap;
+}
+
+.controls input{
+padding:12px;
+width:300px;
+border:none;
+border-radius:10px;
+outline:none;
+}
+
+.controls button{
+padding:12px 20px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.add{
+background:#22c55e;
+color:white;
+}
+
+.search{
+background:white;
+}
+
+.board{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:20px;
+padding:20px;
+}
+
+.column{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(15px);
+padding:15px;
+border-radius:20px;
+min-height:500px;
+}
+
+.column h2{
+text-align:center;
+padding:12px;
+border-radius:10px;
+margin-bottom:15px;
+}
+
+.todo h2{
+background:#ef4444;
+}
+
+.doing h2{
+background:#f59e0b;
+}
+
+.done h2{
+background:#22c55e;
+}
+
+.task{
+background:white;
+color:black;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:grab;
+animation:show .3s ease;
+}
+
+@keyframes show{
+from{
+transform:translateY(20px);
+opacity:0;
+}
+to{
+transform:translateY(0);
+opacity:1;
+}
+}
+
+.delete{
+background:red;
+color:white;
+border:none;
+padding:5px 10px;
+border-radius:6px;
+cursor:pointer;
+}
+
+.footer{
+text-align:center;
+padding:20px;
+opacity:0.7;
+}
+
+@media(max-width:768px){
+
+.hero h1{
+font-size:2rem;
+}
+
+.controls input{
+width:100%;
+}
+
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+<div class="logo">📋 Smart Kanban</div>
+<button class="toggle" onclick="toggleTheme()">🌙 Theme</button>
+</nav>
+
+<section class="hero">
+<h1>Task Management Dashboard</h1>
+<p>Organize your work efficiently with drag & drop.</p>
+</section>
+
+<div class="stats">
+<div class="card">
+<h3>Total Tasks</h3>
+<h2 id="total">0</h2>
+</div>
+
+<div class="card">
+<h3>To Do</h3>
+<h2 id="todoCount">0</h2>
+</div>
+
+<div class="card">
+<h3>Doing</h3>
+<h2 id="doingCount">0</h2>
+</div>
+
+<div class="card">
+<h3>Done</h3>
+<h2 id="doneCount">0</h2>
+</div>
+</div>
+
+<div class="controls">
+<input type="text" id="taskInput" placeholder="Enter task...">
+<button class="add" onclick="addTask()">Add Task</button>
+
+<input type="text" id="search" class="search" placeholder="Search Task..." onkeyup="renderBoard()">
+</div>
+
+<div class="board">
+
+<div class="column todo" data-column="todo">
+<h2>To Do</h2>
+<div class="tasks"></div>
+</div>
+
+<div class="column doing" data-column="doing">
+<h2>Doing</h2>
+<div class="tasks"></div>
+</div>
+
+<div class="column done" data-column="done">
+<h2>Done</h2>
+<div class="tasks"></div>
+</div>
+
+</div>
+
+<footer class="footer">
+Made with ❤️ by Sruthi
+</footer>
+
+<script>
+
+let board=JSON.parse(localStorage.getItem("kanban"))||{
+todo:[],
+doing:[],
+done:[]
+};
+
+function save(){
+localStorage.setItem("kanban",JSON.stringify(board));
+updateStats();
+}
+
+function updateStats(){
+
+document.getElementById("todoCount").innerText=board.todo.length;
+document.getElementById("doingCount").innerText=board.doing.length;
+document.getElementById("doneCount").innerText=board.done.length;
+
+document.getElementById("total").innerText=
+board.todo.length+
+board.doing.length+
+board.done.length;
+
+}
+
+function addTask(){
+
+let input=document.getElementById("taskInput");
+
+if(input.value.trim()=="") return;
+
+board.todo.push(input.value);
+
+input.value="";
+
+save();
+renderBoard();
+}
+
+function renderBoard(){
+
+document.querySelectorAll(".tasks").forEach(x=>x.innerHTML="");
+
+let search=document.getElementById("search").value.toLowerCase();
+
+for(let col in board){
+
+let container=document.querySelector(
+`[data-column="${col}"] .tasks`
+);
+
+board[col].forEach((task,index)=>{
+
+if(!task.toLowerCase().includes(search))
+return;
+
+let div=document.createElement("div");
+
+div.className="task";
+div.draggable=true;
+
+div.innerHTML=`
+<span>${task}</span>
+<button class="delete">🗑</button>
+`;
+
+div.addEventListener("dragstart",()=>{
+div.classList.add("dragging");
+div.dataset.index=index;
+div.dataset.column=col;
+});
+
+div.addEventListener("dragend",()=>{
+div.classList.remove("dragging");
+});
+
+div.querySelector(".delete").onclick=()=>{
+board[col].splice(index,1);
+save();
+renderBoard();
+};
+
+container.appendChild(div);
+
+});
+
+}
+
+updateStats();
+
+}
+
+document.querySelectorAll(".column").forEach(col=>{
+
+col.addEventListener("dragover",(e)=>{
+e.preventDefault();
+});
+
+col.addEventListener("drop",()=>{
+
+let drag=document.querySelector(".dragging");
+
+if(!drag) return;
+
+let from=drag.dataset.column;
+let index=drag.dataset.index;
+
+let task=board[from][index];
+
+board[from].splice(index,1);
+
+board[col.dataset.column].push(task);
+
+save();
+renderBoard();
+
+});
+
+});
+
+function toggleTheme(){
+document.body.classList.toggle("light");
+}
+
+renderBoard();
+
+</script>
+
+</body>
+</html>
